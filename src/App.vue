@@ -92,11 +92,11 @@ export default {
         let outputVideo = document.getElementById('output') // 转码后的视频元素
         let outputVideotx = outputVideo.getContext('2d') 
         outputVideotx.scale(0.5,0.5) // canvas缩放
-        let colorMode = _this.colorControl === true ? 0 : 1 
+        // let colorMode = _this.colorControl === true ? 0 : 1 
         setInterval(() => {
           outputVideotx.drawImage(beforVideo, 10, 10, 800, 448)
-          let videoData = outputVideotx.getImageData(0, 0, 800, 448)
-          _this.thresholdConvert(outputVideotx, videoData, this.Threshold, _this.getModeValue(colorMode))
+          // let videoData = outputVideotx.getImageData(0, 0, 800, 448)
+          // _this.thresholdConvert(outputVideotx, videoData, this.Threshold, _this.getModeValue(colorMode))
         },16)
       }
     },
