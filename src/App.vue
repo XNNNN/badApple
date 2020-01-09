@@ -124,13 +124,6 @@ export default {
         }
         ctx.putImageData(imageData, 10, 100, 800, 448, 800, 448)
     },
-    // getModeValue (ele) {
-    //   for (let i = 0, len = ele.length; i < len; i++) {
-    //         if (ele[i].checked) {
-    //             return ele[i].value;
-    //         }
-    //     }
-    // },
     getThresholdValue() { // 获取阈值
       console.log('this', this)
       console.log(this.Threshold)
