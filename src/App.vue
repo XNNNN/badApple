@@ -21,6 +21,8 @@
         <el-slider
           class="threshold"
           v-model="Threshold"
+          :min="0"
+          :max="255"
           @input="getThresholdValue()"
           show-input>
         </el-slider>
@@ -65,7 +67,7 @@ export default {
   data () {
     return {
       colorControl: true, // 颜色模式
-      Threshold: 0, // 阈值
+      threshold: 128, // 阈值
       zoom: 0,  // 缩放
       videoAddress: undefined, // 视频的本地地址
       controls: undefined  // 控制视频的控件属性
@@ -76,6 +78,8 @@ export default {
     uploadGetInformation (e) { // 获取上传文件的信息
       const _this = this
       let file = e.target.files[0]
+      let reader = new FileReader()
+      
       if(!file.type.match('video.*')) {
         this.$message({
           message: '文件格式不对哦。',
@@ -83,24 +87,25 @@ export default {
         })
         return 
       }
-      let reader = new FileReader()
       reader.readAsDataURL(file)
       reader.onload = function(arg) {
-        _this.videoAddress = arg.target.result
-        _this.controls = "controls" // 视频控件属性
         let beforVideo = document.getElementById('beforVideo')  // 转码之前的元素
         let outputVideo = document.getElementById('output') // 转码后的视频元素
         let outputVideotx = outputVideo.getContext('2d') 
-        outputVideotx.scale(0.5,0.5) // canvas缩放
         let colorMode = _this.colorControl === true ? 0 : 1 
+
+        _this.videoAddress = arg.target.result
+        _this.controls = "controls" // 视频控件属性
+        outputVideotx.scale(0.5,0.5) // canvas缩放
         setInterval(() => {
           outputVideotx.drawImage(beforVideo, 10, 10, 800, 448)
           let videoData = outputVideotx.getImageData(0, 0, 800, 448)
-          _this.thresholdConvert(outputVideotx, videoData, this.Threshold, _this.getModeValue(colorMode))
+          _this.thresholdConvert(outputVideotx, videoData, colorMode)
         },16)
       }
     },
-    thresholdConvert (ctx, imageData, threshold, mode) {
+    thresholdConvert (ctx, imageData, mode) {
+      console.log('mode', mode)
       let  data = imageData.data
       for (let i = 0; i < data.length; i += 4) {
             let red = data[i];
@@ -110,23 +115,24 @@ export default {
 
             // 灰度计算公式
             let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 *data[i + 2];
-            let color = gray >= threshold ? 255 : 0;
+            let color = gray >= this.threshold ? 255 : 0;
 
             data[i]     = (mode == 0 && color == 0) ? red : color;    // red
             data[i + 1] = (mode == 0 && color == 0) ? green : color;  // green
             data[i + 2] = (mode == 0 && color == 0) ? blue : color;   // blue
-            data[i + 3] = alpha >= threshold ? 255 : 0;               // 去掉透明
+            data[i + 3] = alpha >= this.threshold ? 255 : 0;               // 去掉透明
         }
         ctx.putImageData(imageData, 10, 100, 800, 448, 800, 448)
     },
-    getModeValue (ele) {
-      for (let i = 0, len = ele.length; i < len; i++) {
-            if (ele[i].checked) {
-                return ele[i].value;
-            }
-        }
-    },
+    // getModeValue (ele) {
+    //   for (let i = 0, len = ele.length; i < len; i++) {
+    //         if (ele[i].checked) {
+    //             return ele[i].value;
+    //         }
+    //     }
+    // },
     getThresholdValue() { // 获取阈值
+      console.log('this', this)
       console.log(this.Threshold)
     },
     getZoomValue() {
