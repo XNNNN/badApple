@@ -16,17 +16,17 @@
                 <el-form ref="form" :model="form">
                     <el-form-item label="模式选择:">
                         <el-radio-group v-model="form.resource" @change="modeSelect">
-                            <el-radio label="grayMode">灰色模式</el-radio>
-                            <el-radio label="blackWhiteMode">黑白模式</el-radio>
-                            <el-radio label="colorMode">彩色模式</el-radio>
+                            <el-radio label="0">灰色模式</el-radio>
+                            <el-radio label="1">黑白模式</el-radio>
+                            <!-- <el-radio label="2">彩色模式</el-radio> -->
                         </el-radio-group>
                     </el-form-item>
                 </el-form>
                 <div class="block">
                     <div>阈值:</div>
-                    <el-slider v-model="thresholdRange" show-input></el-slider>
-                    <div class="scaleText">缩放率:</div>
-                    <el-slider v-model="scale" show-input></el-slider>
+                    <el-slider v-model="thresholdRange" show-input :max="255"></el-slider>
+                    <!-- <div class="scaleText">缩放率:</div>
+                    <el-slider v-model="scale" show-input></el-slider>-->
                 </div>
             </div>
         </div>
@@ -43,14 +43,14 @@ export default {
             form: {
                 resource: ""
             },
-            thresholdRange: 0,
+            thresholdRange: 128,
             scale: 0
         };
     },
     methods: {
         uploadGetInformation(e) {
             // 获取上传文件的信息
-            const _this = this;
+            const self = this;
             let file = e.target.files[0];
             let reader = new FileReader();
 
@@ -63,43 +63,60 @@ export default {
             }
             reader.readAsDataURL(file);
             reader.onload = function(arg) {
-                _this.videoAddress = arg.target.result;
-                _this.animetionFrame();
+                self.videoAddress = arg.target.result;
+                self.animetionFrame();
             };
             // reader.paly = this.play()
         },
-        animetionFrame() {
+        animetionFrame(mode) {
             let video = document.getElementById("beforVideo");
             let canvas = document.getElementById("canvas");
             let ctx = canvas.getContext("2d");
             const self = this;
+            let scale = self.scale === 0 ? 1 : self.scale * 0.01;
+            let a = 0;
+            let b = 0;
+            console.log(video.videoWidth);
+            a = canvas.width * scale;
+            b = canvas.height * scale;
             requestAnimationFrame(function() {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(video, 0, 0, a / scale, b / scale);
+                console.log(canvas.height / scale);
                 let imgData = ctx.getImageData(
                     0,
                     0,
-                    canvas.width,
-                    canvas.height
+                    canvas.width * scale,
+                    canvas.height * scale
                 );
-                self.grayProcess(imgData, canvas);
-
+                ctx.imageSmoothingEnabled = false;
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.webkitImageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
+                switch (mode) {
+                    case "0": //灰色模式
+                        self.grayProcess(imgData, canvas);
+                        break;
+                    case "1": //黑白模式
+                        self.colorAndBlackWriteMode(
+                            imgData,
+                            self.thresholdRange,
+                            mode
+                        );
+                        break;
+                    case "2": // 彩色模式
+                        self.colorAndBlackWriteMode(
+                            imgData,
+                            self.thresholdRange,
+                            mode
+                        );
+                        break;
+                }
                 ctx.putImageData(imgData, 0, 0);
-                self.animetionFrame();
+                self.animetionFrame(mode);
             });
         },
-        modeSelect(val) {
-            this.animetionFrame(val);
-            // switch (val) {
-            //   case 'grayMode':
-            //     console.log('111111')
-            //     break;
-            //   case 'blackWhiteMode':
-            //     console.log('22222')
-            //     break;
-            //   case 'colorMode':
-            //     console.log('333333')
-            //     break;
-            // }
+        modeSelect(mode) {
+            this.animetionFrame(mode);
         },
         grayProcess(imgData, canvas) {
             let data = imgData.data;
@@ -120,6 +137,27 @@ export default {
                         (h * canvas.width + w) * 4 + 1
                     ] = data[(h * canvas.width + w) * 4 + 2] = avg;
                 }
+            }
+        },
+        colorAndBlackWriteMode(imgData, threshold, mode) {
+            let data = imgData.data;
+            mode = Number(mode);
+            for (let i = 0; i < data.length; i += 4) {
+                let red = data[i];
+                let green = data[i + 1];
+                let blue = data[i + 2];
+                let alpha = data[i + 3];
+
+                // 灰度计算公式
+                let gray =
+                    0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+                let color = gray >= threshold ? 255 : 0;
+
+                data[i] = mode == 2 && color == 2 ? red : color; // red
+                data[i + 1] = mode == 2 && color == 2 ? green : color; // green
+                data[i + 2] = mode == 2 && color == 2 ? blue : color; // blue
+                data[i + 3] = alpha >= threshold ? 255 : 0; // 去掉透明
             }
         }
     }
